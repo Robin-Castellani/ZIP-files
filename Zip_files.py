@@ -100,7 +100,7 @@ to_zip_timedelta = list()
 # momento iniziale e finale per cui si vuole zippare i file
 FIRST_DATE = datetime.datetime(int(data_iniziale[0:4]), int(data_iniziale[4:6]), int(data_iniziale[6:8]), 00, 00, 00)
 
-LAST_DATE = datetime.datetime(int(data_finale[0:4]), int(data_finale[4:6]), int(data_finale[6:8]), 23, 23, 59)
+LAST_DATE = datetime.datetime(int(data_finale[0:4]), int(data_finale[4:6]), int(data_finale[6:8]), 23, 59, 59)
 
 # delta di tempo
 TIME_DELTA = relativedelta(months=1)
