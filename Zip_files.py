@@ -1,6 +1,6 @@
 # *-* coding: utf-8 *-*
 
-'''
+"""
 Script che zippa i file contenuti in una cartella che hanno la data di
 modifica compresa tra due date; la distanza tra le date usualmente è
 pari ad 1 mese
@@ -11,7 +11,7 @@ il formato di salvataggio dei dati .zip è:
     nome_impianto__data_iniziale__data_finale.zip
 
 Lo script NON elimina i file dalla cartella dei dati grezzi.
-'''
+"""
 
 import os
 import zipfile
@@ -22,12 +22,13 @@ import argparse
 
 
 def convert_date(timestamp):
-    '''Converte la data di tipo timestamp in data da datetime
+    """Converte la data di tipo timestamp in data da datetime
     Restituisce la data datetime
-    '''
+    """
 
     d = datetime.datetime.utcfromtimestamp(timestamp)
     return d
+
 
 def zip_files(lista_to_zip, nome_impianto, date, dest_folder):
     """Funzione che zippa i files di un timedelta
@@ -65,9 +66,16 @@ def zip_files(lista_to_zip, nome_impianto, date, dest_folder):
 # creazione del parser
 parser = argparse.ArgumentParser(description="Zip dei files dell'impianto dalla orig-folder alla dest-folder")
 # definizione argomenti parser
-parser.add_argument('Nome_impianto', metavar='nome', type=str, help="Nome dell'impianto")
-parser.add_argument('Cartella_di_origine', metavar='orig-folder', type=str, help='Cartella di origine dei .csv')
-parser.add_argument('Cartella_di_destinazione', metavar='dest-folder', type=str, help='Cartella di destinazione dei .zip')
+parser.add_argument('Nome_impianto', metavar='nome', type=str,
+                    help="Nome dell'impianto")
+parser.add_argument('Cartella_di_origine', metavar='orig-folder', type=str,
+                    help='Cartella di origine dei .csv')
+parser.add_argument('Cartella_di_destinazione', metavar='dest-folder', type=str,
+                    help='Cartella di destinazione dei .zip')
+parser.add_argument('Data_di_inizio', metavar='begin-date', type=str,
+                    help='Anno, mese e giorno da cui partire per il salvataggio dei dati')
+parser.add_argument('Data_di_fine', metavar='end-date', type=str,
+                    help='Anno, mese e giorno in cui terminare il salvataggio dei dati')
 # esecuzione del parser
 args = parser.parse_args()
 
@@ -78,6 +86,10 @@ os.chdir(folder)
 dest_folder = args.Cartella_di_destinazione
 # nome dell'impianto
 nome_impianto = args.Nome_impianto
+# data iniziale
+data_iniziale = args.Data_di_inizio
+# data finale
+data_finale = args.Data_di_fine
 print(nome_impianto + '\n------------\n')
 
 
@@ -86,9 +98,9 @@ to_zip_all = dict()
 to_zip_timedelta = list()
 
 # momento iniziale e finale per cui si vuole zippare i file
-FIRST_DATE = datetime.datetime(2019, 8, 01, 00, 00, 00)
+FIRST_DATE = datetime.datetime(int(data_iniziale[0:4]), int(data_iniziale[4:6]), int(data_iniziale[6:8]), 00, 00, 00)
 
-LAST_DATE = datetime.datetime(2019, 9, 30, 23, 23, 59)
+LAST_DATE = datetime.datetime(int(data_finale[0:4]), int(data_finale[4:6]), int(data_finale[6:8]), 23, 23, 59)
 
 # delta di tempo
 TIME_DELTA = relativedelta(months=1)
