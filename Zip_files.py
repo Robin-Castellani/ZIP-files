@@ -13,12 +13,14 @@ il formato di salvataggio dei dati .zip è:
 Lo script NON elimina i file dalla cartella dei dati grezzi.
 """
 
+from __future__ import print_function
 import os
 import zipfile
 from glob import glob
 from dateutil.relativedelta import relativedelta
 import datetime
 import argparse
+from pymongo import MongoClient
 
 
 def convert_date(timestamp):
@@ -68,19 +70,13 @@ def zip_files(lista_to_zip, nome_impianto, date, dest_folder):
 
 # ---------------------------
 
-# creazione del parser
+# get MongoDB password and date limits
 parser = argparse.ArgumentParser(
-    description="Zip files dell'impianto dalla orig-folder alla dest-folder")
+    description="Zip files dell'impianto; inserire password, data iniziale e finale")
 # definizione argomenti parser
 parser.add_argument(
-    'Nome_impianto', metavar='nome', type=str,
-    help="Nome dell'impianto")
-parser.add_argument(
-    'Cartella_di_origine', metavar='orig-folder', type=str,
-    help='Cartella di origine dei .csv')
-parser.add_argument(
-    'Cartella_di_destinazione', metavar='dest-folder', type=str,
-    help='Cartella di destinazione dei .zip')
+    'Password', metavar='nome', type=str,
+    help="Password di MongoDB")
 parser.add_argument(
     'Data_di_inizio', metavar='begin-date', type=str,
     help='Anno, mese e giorno da cui partire per il salvataggio dei dati')
@@ -90,23 +86,12 @@ parser.add_argument(
 # esecuzione del parser
 args = parser.parse_args()
 
-# cartella contenente i file da zippare
-folder = args.Cartella_di_origine
-os.chdir(folder)
-# cartella dove i file zippati saranno spostati
-dest_folder = args.Cartella_di_destinazione
-# nome dell'impianto
-nome_impianto = args.Nome_impianto
+# password
+mongodb_psw = args.Password
 # data iniziale
 data_iniziale = args.Data_di_inizio
 # data finale
 data_finale = args.Data_di_fine
-print(nome_impianto + '\n------------\n')
-
-
-# dizionario contenente la lista dei file da zippare per ogni timedelta
-to_zip_all = dict()
-to_zip_timedelta = list()
 
 # momento iniziale e finale per cui si vuole zippare i file
 FIRST_DATE = datetime.datetime(
@@ -124,78 +109,107 @@ TIME_DELTA = relativedelta(months=1)
 
 correzione_fuso_orario = datetime.timedelta(hours=2)
 
-# data iniziale
-start_date = FIRST_DATE
-end_date = start_date + TIME_DELTA
+# connection to MongoDB
+connection_string = str(
+    'mongodb+srv://robin-c:{}'.format(mongodb_psw) +
+    '@info-scaricamento-dati-l4hzo.gcp.mongodb.net/test?retryWrites=true&w=majority'
+    )
+db_name = 'dati-impianti'
+collection_name = 'dati-impianti'
 
-# ciclo per raccogliere tutti i file contenuti in ogni TIME_DELTA
-while start_date < LAST_DATE:
+client = MongoClient(connection_string)
+collection = client[db_name][collection_name]
 
-    for file_csv in glob('{}\*.csv'.format(folder)):
+print('Connesso al db {}\nCollezione {}'.format(db_name, collection_name))
 
-        data_file = (convert_date(os.path.getmtime(file_csv))
-                     + correzione_fuso_orario)
-#        print(data_file)
-#        print(end_date)
+# ciclo su tutti gli impianti
+for document in collection.find():
 
-        if start_date <= data_file < end_date:
-            # print(file_csv)
-            # print(data_file)
-            to_zip_timedelta.append(file_csv)
+    # cartella contenente i file da zippare
+    folder = document[u'dati_grezzi_path']
+    os.chdir(folder)
+    # cartella dove i file zippati saranno spostati
+    dest_folder = document[u'dati_grezzi_zipped_path']
+    # nome dell'impianto
+    nome_impianto = document[u'nome_impianto']
 
-    # salvataggio della lista dei file da zippare per tale mese
-    to_zip_all['{}__{}'.format(
-        start_date.strftime('%Y-%m-%d'),
-        end_date.strftime('%Y-%m-%d'))
-        ] = to_zip_timedelta
+    print(nome_impianto + '\n------------\n')
 
-    # aggiornamento della data di partenza
-    print('{} - {} dati acquisiti, {} elementi'
-          .format(start_date, end_date, len(to_zip_timedelta)))
-
-    # reinizializzazione lista file da zippare nel timedelta
+    # dizionario contenente la lista dei file da zippare per ogni timedelta
+    to_zip_all = dict()
     to_zip_timedelta = list()
 
-    # aggiornamento delle date
-    start_date = end_date
-    end_date += TIME_DELTA
+    # data iniziale
+    start_date = FIRST_DATE
+    end_date = start_date + TIME_DELTA
 
-print('Oltre la data ultima')
-print('\n'.join(['Start: {}'.format(start_date),
-                 'End: {}'.format(LAST_DATE)]))
+    # ciclo per raccogliere tutti i file contenuti in ogni TIME_DELTA
+    while start_date < LAST_DATE:
 
+        for file_csv in glob('{}\*.csv'.format(folder)):
 
-# zippaggio dei files
-for date, lista_to_zip in to_zip_all.iteritems():
+            data_file = (convert_date(os.path.getmtime(file_csv))
+                         + correzione_fuso_orario)
+    #        print(data_file)
+    #        print(end_date)
 
-    zip_name = zip_files(lista_to_zip, nome_impianto, date, dest_folder)
+            if start_date <= data_file < end_date:
+                # print(file_csv)
+                # print(data_file)
+                to_zip_timedelta.append(file_csv)
 
-    # check che tutti i file zippati siano quelli effettivamente da zippare
-    with zipfile.ZipFile(os.path.join(dest_folder, zip_name), 'r') as zipobj:
-        files = zipobj.namelist()
-        # creo ottengo i nomi (basename) di tutti i file da zippare
-        lista_to_zip = [os.path.basename(file_) for file_ in lista_to_zip]
-        # check che tutti i file siano presenti
-        files_in_zip = [file_ in lista_to_zip for file_ in files]
-        # ottengo lo stato complessivo di presenza dei file
-        copy_in_zip_ok = all(files_in_zip)
+        # salvataggio della lista dei file da zippare per tale mese
+        to_zip_all['{}__{}'.format(
+            start_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d'))
+            ] = to_zip_timedelta
 
-    # assert every file has been copied in the zip file
-    assert(copy_in_zip_ok is True)
+        # aggiornamento della data di partenza
+        print('{} - {} dati acquisiti, {} elementi'
+              .format(start_date, end_date, len(to_zip_timedelta)))
 
-    for file_to_delete in lista_to_zip:
-        os.remove(file_to_delete)
+        # reinizializzazione lista file da zippare nel timedelta
+        to_zip_timedelta = list()
 
-'''
-# informazioni per ogni file contenente in ogni file .zip
-for file_name in glob('{}\*.zip'.format(dest_folder)):
-    with zipfile.zipfile(file_name, 'r') as zip:
-        for info in zip.infolist():
-            print(info.filename)
-            print('\tmodified:\t' + str(datetime.datetime(*info.date_time)))
-            print('\tsystem:\t\t' + str(info.create_system) +
-                  '(0 = windows, 3 = unix)')
-            print('\tzip version:\t' + str(info.create_version))
-            print('\tcompressed:\t' + str(info.compress_size) + ' bytes')
-            print('\tUncompressed:\t' + str(info.file_size) + ' bytes')
-'''
+        # aggiornamento delle date
+        start_date = end_date
+        end_date += TIME_DELTA
+
+    print('Oltre la data ultima')
+    print('\n'.join(['Start: {}'.format(start_date),
+                     'End: {}'.format(LAST_DATE)]))
+
+    # zippaggio dei files
+    for date, lista_to_zip in to_zip_all.iteritems():
+
+        zip_name = zip_files(lista_to_zip, nome_impianto, date, dest_folder)
+
+        # check che tutti i file zippati siano quelli effettivamente da zippare
+        with zipfile.ZipFile(os.path.join(dest_folder, zip_name), 'r') as zipobj:
+            files = zipobj.namelist()
+            # creo ottengo i nomi (basename) di tutti i file da zippare
+            lista_to_zip = [os.path.basename(file_) for file_ in lista_to_zip]
+            # check che tutti i file siano presenti
+            files_in_zip = [file_ in lista_to_zip for file_ in files]
+            # ottengo lo stato complessivo di presenza dei file
+            copy_in_zip_ok = all(files_in_zip)
+
+        # assert every file has been copied in the zip file
+        assert(copy_in_zip_ok is True)
+
+        for file_to_delete in lista_to_zip:
+            os.remove(file_to_delete)
+
+    '''
+    # informazioni per ogni file contenente in ogni file .zip
+    for file_name in glob('{}\*.zip'.format(dest_folder)):
+        with zipfile.zipfile(file_name, 'r') as zip:
+            for info in zip.infolist():
+                print(info.filename)
+                print('\tmodified:\t' + str(datetime.datetime(*info.date_time)))
+                print('\tsystem:\t\t' + str(info.create_system) +
+                      '(0 = windows, 3 = unix)')
+                print('\tzip version:\t' + str(info.create_version))
+                print('\tcompressed:\t' + str(info.compress_size) + ' bytes')
+                print('\tUncompressed:\t' + str(info.file_size) + ' bytes')
+    '''
