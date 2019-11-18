@@ -35,10 +35,13 @@ def zip_files(lista_to_zip, nome_impianto, date, dest_folder):
     Effettua verifiche:
     è già presente lo stesso file?
     ci sono file da zippare?
+
+    :returns zip_name
+        name of the zip file
     """
     
     # zip dei files
-    zip_name = ('{}__{}.zip'.format(nome_impianto, date))
+    zip_name = '{}__{}.zip'.format(nome_impianto, date)
     print('Zippando {}'.format(zip_name))
 
     # nel caso in cui lo zip sia già presente, lo salta
@@ -47,7 +50,7 @@ def zip_files(lista_to_zip, nome_impianto, date, dest_folder):
         return
 
     # nel caso in cui non ci siano file da zippare
-    if lista_to_zip == []:
+    if not lista_to_zip:
         print('Nessun file da zippare in {}'.format(zip_name))
         return
 
@@ -59,6 +62,8 @@ def zip_files(lista_to_zip, nome_impianto, date, dest_folder):
 
         print('Zippaggio terminato {}'.format(date))
         print('------------')
+
+    return zip_name
 
 
 # ---------------------------
@@ -163,19 +168,34 @@ print('\n'.join(['Start: {}'.format(start_date),
 # zippaggio dei files
 for date, lista_to_zip in to_zip_all.iteritems():
 
-    zip_files(lista_to_zip, nome_impianto, date, dest_folder)
+    zip_name = zip_files(lista_to_zip, nome_impianto, date, dest_folder)
+
+    # check che tutti i file zippati siano quelli effettivamente da zippare
+    with zipfile.ZipFile(os.path.join(dest_folder, zip_name), 'r') as zipobj:
+        files = zipobj.namelist()
+        # creo ottengo i nomi (basename) di tutti i file da zippare
+        lista_to_zip = [os.path.basename(file_) for file_ in lista_to_zip]
+        # check che tutti i file siano presenti
+        files_in_zip = [file_ in lista_to_zip for file_ in files]
+        # ottengo lo stato complessivo di presenza dei file
+        copy_in_zip_ok = all(files_in_zip)
+
+    # assert every file has been copied in the zip file
+    assert(copy_in_zip_ok is True)
 
     for file_to_delete in lista_to_zip:
         os.remove(file_to_delete)
 
-### informazioni per ogni file contenente in ogni file .zip
-##for file_name in glob('{}\*.zip'.format(dest_folder)):
-##    with zipfile.ZipFile(file_name, 'r') as zip:
-##        for info in zip.infolist():
-##            print(info.filename)
-##            print('\tModified:\t' + str(datetime.datetime(*info.date_time)))
-##            print('\tSystem:\t\t' + str(info.create_system) +
-# '(0 = Windows, 3 = Unix)')
-##            print('\tZIP version:\t' + str(info.create_version))
-##            print('\tCompressed:\t' + str(info.compress_size) + ' bytes')
-##            print('\tUncompressed:\t' + str(info.file_size) + ' bytes')
+'''
+# informazioni per ogni file contenente in ogni file .zip
+for file_name in glob('{}\*.zip'.format(dest_folder)):
+    with zipfile.zipfile(file_name, 'r') as zip:
+        for info in zip.infolist():
+            print(info.filename)
+            print('\tmodified:\t' + str(datetime.datetime(*info.date_time)))
+            print('\tsystem:\t\t' + str(info.create_system) +
+                  '(0 = windows, 3 = unix)')
+            print('\tzip version:\t' + str(info.create_version))
+            print('\tcompressed:\t' + str(info.compress_size) + ' bytes')
+            print('\tUncompressed:\t' + str(info.file_size) + ' bytes')
+'''
