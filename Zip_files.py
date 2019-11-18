@@ -49,12 +49,12 @@ def zip_files(lista_to_zip, nome_impianto, date, dest_folder):
     # nel caso in cui lo zip sia già presente, lo salta
     if zip_name in os.listdir(dest_folder):
         print('{} già presente'. format(zip_name))
-        return
+        return ''
 
     # nel caso in cui non ci siano file da zippare
     if not lista_to_zip:
         print('Nessun file da zippare in {}'.format(zip_name))
-        return
+        return ''
 
     with zipfile.ZipFile(os.path.join(dest_folder, zip_name), 'w',
                          compression=zipfile.ZIP_DEFLATED) as new_z:
@@ -120,7 +120,8 @@ collection_name = 'dati-impianti'
 client = MongoClient(connection_string)
 collection = client[db_name][collection_name]
 
-print('Connesso al db {}\nCollezione {}'.format(db_name, collection_name))
+print('Connesso al db {}\nCollezione {}\n- - - - - - -\n'
+      .format(db_name, collection_name))
 
 # ciclo su tutti gli impianti
 for document in collection.find():
@@ -133,7 +134,7 @@ for document in collection.find():
     # nome dell'impianto
     nome_impianto = document[u'nome_impianto']
 
-    print(nome_impianto + '\n------------\n')
+    print('\n\n\n' + nome_impianto + '\n------------')
 
     # dizionario contenente la lista dei file da zippare per ogni timedelta
     to_zip_all = dict()
@@ -183,6 +184,10 @@ for document in collection.find():
     for date, lista_to_zip in to_zip_all.iteritems():
 
         zip_name = zip_files(lista_to_zip, nome_impianto, date, dest_folder)
+
+        # skips if no new file was created
+        if not zip_name:
+            continue
 
         # check che tutti i file zippati siano quelli effettivamente da zippare
         with zipfile.ZipFile(os.path.join(dest_folder, zip_name), 'r') as zipobj:
