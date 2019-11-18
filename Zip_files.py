@@ -64,18 +64,24 @@ def zip_files(lista_to_zip, nome_impianto, date, dest_folder):
 # ---------------------------
 
 # creazione del parser
-parser = argparse.ArgumentParser(description="Zip dei files dell'impianto dalla orig-folder alla dest-folder")
+parser = argparse.ArgumentParser(
+    description="Zip files dell'impianto dalla orig-folder alla dest-folder")
 # definizione argomenti parser
-parser.add_argument('Nome_impianto', metavar='nome', type=str,
-                    help="Nome dell'impianto")
-parser.add_argument('Cartella_di_origine', metavar='orig-folder', type=str,
-                    help='Cartella di origine dei .csv')
-parser.add_argument('Cartella_di_destinazione', metavar='dest-folder', type=str,
-                    help='Cartella di destinazione dei .zip')
-parser.add_argument('Data_di_inizio', metavar='begin-date', type=str,
-                    help='Anno, mese e giorno da cui partire per il salvataggio dei dati')
-parser.add_argument('Data_di_fine', metavar='end-date', type=str,
-                    help='Anno, mese e giorno in cui terminare il salvataggio dei dati')
+parser.add_argument(
+    'Nome_impianto', metavar='nome', type=str,
+    help="Nome dell'impianto")
+parser.add_argument(
+    'Cartella_di_origine', metavar='orig-folder', type=str,
+    help='Cartella di origine dei .csv')
+parser.add_argument(
+    'Cartella_di_destinazione', metavar='dest-folder', type=str,
+    help='Cartella di destinazione dei .zip')
+parser.add_argument(
+    'Data_di_inizio', metavar='begin-date', type=str,
+    help='Anno, mese e giorno da cui partire per il salvataggio dei dati')
+parser.add_argument(
+    'Data_di_fine', metavar='end-date', type=str,
+    help='Anno, mese e giorno in cui terminare il salvataggio dei dati')
 # esecuzione del parser
 args = parser.parse_args()
 
@@ -98,9 +104,15 @@ to_zip_all = dict()
 to_zip_timedelta = list()
 
 # momento iniziale e finale per cui si vuole zippare i file
-FIRST_DATE = datetime.datetime(int(data_iniziale[0:4]), int(data_iniziale[4:6]), int(data_iniziale[6:8]), 00, 00, 00)
+FIRST_DATE = datetime.datetime(
+    int(data_iniziale[0:4]), int(data_iniziale[4:6]),
+    int(data_iniziale[6:8]),
+    00, 00, 00)
 
-LAST_DATE = datetime.datetime(int(data_finale[0:4]), int(data_finale[4:6]), int(data_finale[6:8]), 23, 59, 59)
+LAST_DATE = datetime.datetime(
+    int(data_finale[0:4]), int(data_finale[4:6]),
+    int(data_finale[6:8]),
+    23, 59, 59)
 
 # delta di tempo
 TIME_DELTA = relativedelta(months=1)
@@ -153,6 +165,8 @@ for date, lista_to_zip in to_zip_all.iteritems():
 
     zip_files(lista_to_zip, nome_impianto, date, dest_folder)
 
+    for file_to_delete in lista_to_zip:
+        os.remove(file_to_delete)
 
 ### informazioni per ogni file contenente in ogni file .zip
 ##for file_name in glob('{}\*.zip'.format(dest_folder)):
@@ -160,7 +174,8 @@ for date, lista_to_zip in to_zip_all.iteritems():
 ##        for info in zip.infolist():
 ##            print(info.filename)
 ##            print('\tModified:\t' + str(datetime.datetime(*info.date_time)))
-##            print('\tSystem:\t\t' + str(info.create_system) + '(0 = Windows, 3 = Unix)')
+##            print('\tSystem:\t\t' + str(info.create_system) +
+# '(0 = Windows, 3 = Unix)')
 ##            print('\tZIP version:\t' + str(info.create_version))
 ##            print('\tCompressed:\t' + str(info.compress_size) + ' bytes')
 ##            print('\tUncompressed:\t' + str(info.file_size) + ' bytes')
