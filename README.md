@@ -10,6 +10,6 @@ Il nome dei file è del tipo:
 dove `nome_impianto` è il primo parametro dato in input.
 
 L'utilizzo è il seguente:
-`python Zip_files.py nome_impianto origin_folder destination_folder`
+`python Zip_files.py mongodb_password begin_date end_date`
 
-Lo script **non** cancella i file che vengono zippati.
+Lo script **cancella** i file che vengono zippati.

@@ -1,4 +1,8 @@
 # coding=utf-8
+"""
+Collection of functions used in the main .py file
+"""
+
 import os
 import zipfile
 import datetime

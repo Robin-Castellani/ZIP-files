@@ -10,7 +10,7 @@ i dati grezzi e la cartella dove salvare i dati zippati;
 il formato di salvataggio dei dati .zip è:
     nome_impianto__data_iniziale__data_finale.zip
 
-Lo script NON elimina i file dalla cartella dei dati grezzi.
+Lo script elimina i file dalla cartella dei dati grezzi.
 """
 
 from __future__ import print_function
